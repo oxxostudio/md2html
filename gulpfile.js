@@ -9,7 +9,8 @@ var gulp = require('gulp'),
   gutil = require('gulp-util'),
   extender = require('gulp-html-extend'),
   merge = require('merge-stream'),
-  sitemap = require('gulp-sitemap');
+  sitemap = require('gulp-sitemap'),
+  runSequence = require('run-sequence');
 
 /**
  * markdown to html
@@ -82,9 +83,8 @@ gulp.task('less2css', ['less'], function() {
 gulp.task('md2json', ['extender'], function() {
   return gulp.src(['app/_md/**/*.md'])
     .pipe(gutil.buffer())
-    .pipe(md2json(marked, 'tutorials.json', function(data, file){
+    .pipe(md2json(marked, 'tutorials.json', function(data, file) {
       delete data.body;
-      data.date = file.date;
       return data;
     }))
     .pipe(gulp.dest('app/json'))
@@ -92,7 +92,7 @@ gulp.task('md2json', ['extender'], function() {
 
 
 /** 
- * build 
+ * build 前先清空原本舊的 build 內容
  */
 gulp.task('build-clean', function() {
   return gulp.src(['build/*'], {
@@ -101,34 +101,51 @@ gulp.task('build-clean', function() {
     .pipe(clean());
 });
 
-
 /**
- * 根據網頁內容，產生對應的 meta 標籤
+ * 根據網頁內容，產生對應的 meta 標籤內容
+ * 預存在陣列內，待會產生真正 meta 內容的時候會用到
  */
-gulp.task('build-meta', ['build-clean'], function() {
-  return gulp.src('app/tutorials/**/*')
+var metaData = [];
+var baseUrl = 'https://webduino.io/';
+
+gulp.task('build-meta-json', ['build-clean'], function() {
+  return gulp.src('app/_md2html/**/*')
     .pipe(dom(function() {
 
-      var article = this.querySelector('article');
-      var hr = this.querySelectorAll('hr');
-
-      var baseUrl = 'https://webduino.io/';
-
-      var note = this.querySelectorAll('p')[0];
+      var note = this.querySelector('p');
       var nodelist = note.innerHTML.split('\n');
       var nodeObject = {};
       nodelist.forEach(function(e, i) {
         nodeObject[e.split(': ')[0]] = e.split(': ')[1];
       });
+      metaData.push(nodeObject);
+      return this;
+    }));
+});
 
-      var img = nodeObject.img;
-      var title = nodeObject.title;
-      var folder = nodeObject.folder;
-      var src = nodeObject.src;
+/**
+ * 產生每一頁的 meta 內容
+ */
+gulp.task('build-meta', ['build-meta-json'], function() {
+  return gulp.src('app/tutorials/**/*')
+    .pipe(dom(function() {
 
-      var description = this.querySelectorAll('p')[1].innerHTML;
+      var img, folder, src;
+
+      var title = this.querySelector('h1').innerHTML;
+      var description = this.querySelector('p').innerHTML;
       var meta = this.querySelectorAll('meta');
       var metaToArray = Array.apply(null, meta);
+
+      metaData.forEach(function(e) {
+        if (title == e.title) {
+          img = e.img;
+          folder = e.folder;
+          src = e.src;
+        }
+      });
+
+      this.querySelector('title').innerHTML = title;
 
       metaToArray.forEach(function(e) {
         if (e.getAttribute('property') == 'og:title') {
@@ -145,20 +162,14 @@ gulp.task('build-meta', ['build-clean'], function() {
         }
       });
 
-      this.querySelectorAll('title')[0].innerHTML = title;
-
-      article.removeChild(note);
-      article.removeChild(hr[0]);
-      article.removeChild(hr[1]);
-
       return this;
     }))
     .pipe(gulp.dest('build/tutorials'));
 });
 
-
 /** 
  * 透過 gulp-stream 來合併 task 
+ * build 的時候根據網頁結構，自動產生 sitemap.xml
  */
 gulp.task('build-move', ['build-meta'], function() {
   var a1 = gulp.src('app/json/*').pipe(gulp.dest('build/json')),
@@ -166,10 +177,6 @@ gulp.task('build-move', ['build-meta'], function() {
   return merge(a1, a2);
 });
 
-
-/**
- * 根據網頁結構，自動產生 sitemap.xml
- */
 gulp.task('build', ['build-move'], function() {
   return gulp.src(['build/**/*.html'])
     .pipe(sitemap({
@@ -190,13 +197,18 @@ gulp.task('watch', function() {
 
 
 /** 
- * 應該不用每次編輯都做一次清除動作，在開始前先清除一次即可
+ * 不用每次編輯都做一次清除動作，在開始前先清除一次即可
+ * 透過 runSequence 讓開始前先執行一次清除動作
+ * 參考 https://www.npmjs.com/package/run-sequence
  */
 gulp.task('clean', function() {
-  return gulp.src(['app/_md2html/*', 'app/tutorials/*','app/style/*'], {
+  return gulp.src(['app/_md2html/*', 'app/tutorials/*', 'app/style/*'], {
       read: true
     })
     .pipe(clean());
 });
 
-gulp.task('default', ['md2json', 'less2css', 'watch']);
+gulp.task('default', function(callback) {
+  runSequence('clean', ['md2json', 'less2css', 'watch'],
+    callback);
+});

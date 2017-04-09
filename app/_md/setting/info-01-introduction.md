@@ -1,7 +1,3 @@
-<!-- @@master  = ../../_layout-tutorials.html-->
-
-<!-- @@block  =  tutorials-->
-
 ---
 
 tag: info
@@ -13,6 +9,10 @@ date: 20150425
 folder: setting
 
 ---
+
+<!-- @@master  = ../../_layout-tutorials.html-->
+
+<!-- @@block  =  article-->
 
 # Webduino 的基本介紹
 
