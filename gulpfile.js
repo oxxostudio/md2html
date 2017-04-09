@@ -10,6 +10,7 @@ var gulp = require('gulp'),
   extender = require('gulp-html-extend'),
   merge = require('merge-stream'),
   sitemap = require('gulp-sitemap'),
+  changed = require('gulp-changed'),
   runSequence = require('run-sequence');
 
 /**
@@ -38,22 +39,30 @@ gulp.task('tutorialLayout', function() {
 
 
 /**
- * 記得加入 marked 的設定
+ * markdown 轉換成 html，記得加入 marked 的設定
+ * changed 幫助我們只轉換有改變的檔案，增加效能
+ * 記得要加入 extension: '.html' 的設定，不然會失效
+ * 參考 https://www.npmjs.com/package/gulp-changed
  */
 gulp.task('markdown', ['tutorialLayout'], function() {
   return gulp.src('app/_md/**/*.md')
+    .pipe(changed('app/_md2html/', {
+      extension: '.html'
+    }))
     .pipe(markdown({
       renderer: renderer
     }))
     .pipe(gulp.dest('app/_md2html/'));
 });
 
-
 /**
- * 合併 layout
+ * 轉換後的 html 合併 layout
  */
 gulp.task('extender', ['markdown'], function() {
   return gulp.src('app/_md2html/**/*')
+    .pipe(changed('app/tutorials/', {
+      extension: '.html'
+    }))
     .pipe(extender({
       annotations: false,
       verbose: false
