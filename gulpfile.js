@@ -75,7 +75,7 @@ gulp.task('extender', ['markdown'], function() {
  * less to css
  */
 gulp.task('less', function() {
-  return gulp.src('app/_less/*.less')
+  return gulp.src(['app/_less/*.less','!app/_less/import/*.less'])
     .pipe(less())
     .pipe(gulp.dest('app/style/'))
 });
@@ -99,23 +99,24 @@ gulp.task('md2json', ['extender'], function() {
     .pipe(gulp.dest('app/json'))
 });
 
-
-/** 
- * build 前先清空原本舊的 build 內容
- */
-gulp.task('build-clean', function() {
-  return gulp.src(['build/*'], {
-      read: true
-    })
-    .pipe(clean());
-});
-
 /**
  * 根據網頁內容，產生對應的 meta 標籤內容
  * 預存在陣列內，待會產生真正 meta 內容的時候會用到
  */
 var metaData = [];
 var baseUrl = 'https://webduino.io/';
+
+/** 
+ * build 前先清空原本舊的 build 內容
+ * 並確認 metaData 為空陣列
+ */
+gulp.task('build-clean', function() {
+  metaData = [];
+  return gulp.src(['build/*'], {
+      read: true
+    })
+    .pipe(clean());
+});
 
 gulp.task('build-meta-json', ['build-clean'], function() {
   return gulp.src('app/_md2html/**/*')
@@ -201,7 +202,7 @@ gulp.task('build', ['build-move'], function() {
 gulp.task('watch', function() {
   gulp.watch(['_layout.html', '_layout-tutorials.html', '_meta-md.html'], ['extender']);
   gulp.watch(['app/_md/**/*.md'], ['md2json']);
-  gulp.watch(['app/_less/*.less', 'app/_less/lib/*'], ['copy-to-css']);
+  gulp.watch(['app/_less/**/*'], ['copy-to-css']);
 });
 
 
