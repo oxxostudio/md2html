@@ -8,6 +8,7 @@ var gulp = require('gulp'),
   md = require('marked'),
   gutil = require('gulp-util'),
   extender = require('gulp-html-extend'),
+  include = require('gulp-html-tag-include'),
   merge = require('merge-stream'),
   sitemap = require('gulp-sitemap'),
   changed = require('gulp-changed'),
@@ -25,6 +26,18 @@ renderer.heading = function(text, level) {
   return '<h' + level + '>' + text + '</h' + level + '>\n';
 };
 
+/**
+ * 透過 include 把版面共用的元素獨立出來變成模組
+ * 主板放在 main 資料夾，共用的模組則放在 module 資料夾
+ * 合併後放在 _layout-combine 資料夾內
+ */
+gulp.task('include', function() {
+  return gulp.src(['app/_layout/main/**/*.html'])
+    .pipe(include({
+      prefixVar: '@!@'
+    }))
+    .pipe(gulp.dest('app/_layout-combine/'));
+});
 
 /**
  * markdown 轉換成 html，記得加入 marked 的設定
@@ -32,7 +45,7 @@ renderer.heading = function(text, level) {
  * 記得要加入 extension: '.html' 的設定，不然會失效
  * 參考 https://www.npmjs.com/package/gulp-changed
  */
-gulp.task('markdown', function() {
+gulp.task('markdown', ['include'], function() {
   return gulp.src('app/_md/**/*.md')
     .pipe(changed('app/_md2html/', {
       extension: '.html'
@@ -59,9 +72,9 @@ gulp.task('extender', ['markdown'], function() {
 });
 
 /**
- * 如果是 layout 改變，則全部重新轉換
+ * 如果是 layout 改變，則全部重新轉換 ( 不然會被 changed 影響 )
  */
-gulp.task('layout-extender', function() {
+gulp.task('layout-extender', ['include'], function() {
   return gulp.src('app/_md2html/**/*')
     .pipe(extender({
       annotations: false,
@@ -75,7 +88,7 @@ gulp.task('layout-extender', function() {
  * less to css
  */
 gulp.task('less', function() {
-  return gulp.src(['app/_less/*.less','!app/_less/import/*.less'])
+  return gulp.src(['app/_less/*.less', '!app/_less/import/*.less'])
     .pipe(less())
     .pipe(gulp.dest('app/style/'))
 });
@@ -184,8 +197,9 @@ gulp.task('build-meta', ['build-meta-json'], function() {
 gulp.task('build-move', ['build-meta'], function() {
   var a1 = gulp.src('app/json/*').pipe(gulp.dest('build/json')),
     a2 = gulp.src('app/style/**/*').pipe(gulp.dest('build/style')),
-    a3 = gulp.src('app/media/**/*').pipe(gulp.dest('build/media'));
-  return merge(a1, a2, a3);
+    a3 = gulp.src('app/media/**/*').pipe(gulp.dest('build/media')),
+    a4 = gulp.src('app/js/**/*').pipe(gulp.dest('build/js'));
+  return merge(a1, a2, a3, a4);
 });
 
 gulp.task('build', ['build-move'], function() {
@@ -213,7 +227,7 @@ gulp.task('watch', function() {
  * 參考 https://www.npmjs.com/package/run-sequence
  */
 gulp.task('clean', function() {
-  return gulp.src(['app/_md2html/*', 'app/tutorials/*', 'app/style/*'], {
+  return gulp.src(['app/_md2html/*', 'app/tutorials/*', 'app/style/*', 'app/_layout/combine/*'], {
       read: true
     })
     .pipe(clean());

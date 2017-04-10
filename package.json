@@ -14,6 +14,7 @@
     "gulp-clean": "^0.3.2",
     "gulp-dom": "^0.9.17",
     "gulp-html-extend": "^1.1.6",
+    "gulp-html-tag-include": "^1.0.1",
     "gulp-less": "^3.3.0",
     "gulp-markdown": "^1.2.0",
     "gulp-markdown-to-json": "^1.0.3",

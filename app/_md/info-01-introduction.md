@@ -10,7 +10,7 @@ folder: setting
 
 ---
 
-<!-- @@master  = ../_layout/_layout-tutorials.html-->
+<!-- @@master  = ../_layout-combine/_layout-tutorials.html-->
 
 <!-- @@block  =  article-->
 
