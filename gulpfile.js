@@ -15,7 +15,7 @@ var gulp = require('gulp'),
 
 /**
  * markdown to html
- * marked 設定，避免產生的 h tag 會出現轉不出中文的奇怪 id
+ * marked 設定，避免 <h1> 會轉不出中文而產生奇怪 id
  * 參考 https://www.npmjs.com/package/marked
  * 參考 https://www.npmjs.com/package/gulp-markdown
  */
@@ -25,18 +25,6 @@ renderer.heading = function(text, level) {
   return '<h' + level + '>' + text + '</h' + level + '>\n';
 };
 
-gulp.task('tutorialLayout', function() {
-  return gulp.src('app/_meta-md.html')
-    .pipe(extender({
-      annotations: false,
-      verbose: false
-    }))
-    .pipe(rename(function(path) {
-      path.basename = "_layout-tutorials";
-    }))
-    .pipe(gulp.dest('app'));
-});
-
 
 /**
  * markdown 轉換成 html，記得加入 marked 的設定
@@ -44,7 +32,7 @@ gulp.task('tutorialLayout', function() {
  * 記得要加入 extension: '.html' 的設定，不然會失效
  * 參考 https://www.npmjs.com/package/gulp-changed
  */
-gulp.task('markdown', ['tutorialLayout'], function() {
+gulp.task('markdown', function() {
   return gulp.src('app/_md/**/*.md')
     .pipe(changed('app/_md2html/', {
       extension: '.html'
@@ -56,13 +44,25 @@ gulp.task('markdown', ['tutorialLayout'], function() {
 });
 
 /**
- * 轉換後的 html 合併 layout
+ * 轉換後的 html 合併 layout，透過 changed 只轉換有改變的檔案
  */
 gulp.task('extender', ['markdown'], function() {
   return gulp.src('app/_md2html/**/*')
     .pipe(changed('app/tutorials/', {
       extension: '.html'
     }))
+    .pipe(extender({
+      annotations: false,
+      verbose: false
+    }))
+    .pipe(gulp.dest('app/tutorials/'));
+});
+
+/**
+ * 如果是 layout 改變，則全部重新轉換
+ */
+gulp.task('layout-extender', function() {
+  return gulp.src('app/_md2html/**/*')
     .pipe(extender({
       annotations: false,
       verbose: false
@@ -183,8 +183,9 @@ gulp.task('build-meta', ['build-meta-json'], function() {
  */
 gulp.task('build-move', ['build-meta'], function() {
   var a1 = gulp.src('app/json/*').pipe(gulp.dest('build/json')),
-    a2 = gulp.src('app/style/**/*').pipe(gulp.dest('build/style'));
-  return merge(a1, a2);
+    a2 = gulp.src('app/style/**/*').pipe(gulp.dest('build/style')),
+    a3 = gulp.src('app/media/**/*').pipe(gulp.dest('build/media'));
+  return merge(a1, a2, a3);
 });
 
 gulp.task('build', ['build-move'], function() {
@@ -200,9 +201,9 @@ gulp.task('build', ['build-move'], function() {
  * watch 
  */
 gulp.task('watch', function() {
-  gulp.watch(['_layout.html', '_layout-tutorials.html', '_meta-md.html'], ['extender']);
-  gulp.watch(['app/_md/**/*.md'], ['md2json']);
-  gulp.watch(['app/_less/**/*'], ['copy-to-css']);
+  gulp.watch(['app/_layout/**/*'], ['layout-extender']);
+  gulp.watch(['app/_md/**/*'], ['md2json']);
+  gulp.watch(['app/_less/**/*'], ['less2css']);
 });
 
 

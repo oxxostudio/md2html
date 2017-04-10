@@ -10,7 +10,7 @@ folder: basic
 
 ---
 
-<!-- @@master  = ../../_layout-tutorials.html-->
+<!-- @@master  = ../_layout/_layout-tutorials.html-->
 
 <!-- @@block  =  article-->
 
